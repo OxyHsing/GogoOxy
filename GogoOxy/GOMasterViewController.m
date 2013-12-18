@@ -30,6 +30,8 @@
 	// Do any additional setup after loading the view, typically from a nib.
     self.navigationItem.leftBarButtonItem = self.editButtonItem;
     
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(finishNotification:) name:UpdateUINotification object:nil];
+    
     browsingData = [[NSMutableArray alloc] init];
     //Load Data from movie.io
     [[DataLogicController sharedInstance] fetchDataFromInternet:^(){
@@ -37,7 +39,7 @@
         [self.tableView reloadData];
     }];
     
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(finishNotification:) name:UpdateUINotification object:nil];
+    
     //Initial SDWebImg
     
 }

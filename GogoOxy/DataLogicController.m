@@ -8,7 +8,9 @@
 
 #import "DataLogicController.h"
 
-@implementation DataLogicController
+@implementation DataLogicController{
+    NSMutableData *receivedData;
+}
 
 
 @synthesize resultArray;
@@ -26,6 +28,8 @@ static DataLogicController *_instanse = nil;
     self = [super init];
     if(self){
         resultArray = [[NSMutableArray alloc] init];
+        receivedData = [[NSMutableData alloc] init];
+
     }
     return self;
 }
@@ -34,7 +38,10 @@ static DataLogicController *_instanse = nil;
     //Fetch From Internet
     _finishBlock = finishBlock;
     NSString * urlString = @"http://api.movies.io/movies/search?q=hobbit";
-    NSURLRequest * request = [[NSURLRequest alloc] initWithURL:[NSURL URLWithString:[urlString stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]]];
+//    NSURLRequest * request = [[NSURLRequest alloc] initWithURL:[NSURL URLWithString:urlString]];
+    NSMutableURLRequest * request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:urlString] cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:20];
+    [request setValue:@"gzip" forHTTPHeaderField:@"Accept-Encoding"];
+    [request setHTTPMethod:@"GET"];
     NSURLConnection * connection = [[NSURLConnection alloc] initWithRequest:request delegate:self];
     [connection start];
     
@@ -44,19 +51,24 @@ static DataLogicController *_instanse = nil;
     NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
     NSUInteger statusCode = [httpResponse statusCode];
     NSLog(@"Fetch URL Response = %lu",(unsigned long)statusCode);
+    NSLog(@"All Header : %@",[httpResponse allHeaderFields]);
 
 }
 
 
 -(void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data{
-    //Start parsing
-    NSError *error = NULL;
-    NSDictionary * resultDictionary =  [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingAllowFragments error:&error];
-    NSLog(@"Print ResultDictionary %@",resultDictionary);
-    //Object in Movies is a movie array
-    [self parsingRawData:[resultDictionary objectForKey:JSON_KEY_MOVIES]];
+    //This will call twice and over, should take care.
+    [receivedData appendData:data];
+    
 }
 -(void)connectionDidFinishLoading:(NSURLConnection *)connection{
+    //Start parsing
+    NSError *error = NULL;
+    NSDictionary * resultDictionary =  [NSJSONSerialization JSONObjectWithData:receivedData options:NSJSONReadingAllowFragments error:&error];
+    NSLog(@"Print ResultDictionary %@",[resultDictionary objectForKey:JSON_KEY_MOVIES]);
+    //Object in Movies is a movie array
+    [self parsingRawData:[resultDictionary objectForKey:JSON_KEY_MOVIES]];
+    
     if(_finishBlock){
         _finishBlock();
     }
